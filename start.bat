@@ -58,6 +58,22 @@ if errorlevel 1 (
 )
 echo.
 
+REM --- Virtual Environment Setup ---
+set VENV_DIR=venv
+
+if not exist %VENV_DIR%\Scripts\activate.bat (
+    echo Creating virtual environment in '%VENV_DIR%'...
+    %PYTHON_CMD% -m venv %VENV_DIR%
+    if errorlevel 1 (
+        echo ERROR: Failed to create virtual environment.
+        pause
+        exit /b 1
+    )
+)
+
+echo Activating virtual environment...
+call %VENV_DIR%\Scripts\activate.bat
+
 REM Check if requirements.txt exists
 if not exist requirements.txt (
     echo ERROR: requirements.txt not found
@@ -66,48 +82,17 @@ if not exist requirements.txt (
     exit /b 1
 )
 
-REM Try to install dependencies with different methods
 echo Installing dependencies...
-echo Trying: %PIP_CMD% install -r requirements.txt
-%PIP_CMD% install -r requirements.txt
-if not errorlevel 1 (
-    echo Dependencies installed successfully!
-    goto :start_app
-)
+REM Inside a venv, 'python' and 'pip' are sufficient.
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 
-echo.
-echo First attempt failed, trying alternative method...
-echo Trying: %PYTHON_CMD% -m pip install -r requirements.txt
-%PYTHON_CMD% -m pip install -r requirements.txt
-if not errorlevel 1 (
-    echo Dependencies installed successfully!
-    goto :start_app
+if errorlevel 1 (
+    echo ERROR: Failed to install dependencies from requirements.txt
+    echo Please check your internet connection and the contents of requirements.txt
+    pause
+    exit /b 1
 )
-
-echo.
-echo Second attempt failed, trying to upgrade pip first...
-echo Trying: %PYTHON_CMD% -m pip install --upgrade pip
-%PYTHON_CMD% -m pip install --upgrade pip
-if not errorlevel 1 (
-    echo Pip upgraded, now installing dependencies...
-    %PYTHON_CMD% -m pip install -r requirements.txt
-    if not errorlevel 1 (
-        echo Dependencies installed successfully!
-        goto :start_app
-    )
-)
-
-echo.
-echo ERROR: Failed to install dependencies
-echo.
-echo Possible solutions:
-echo 1. Update Python to a newer version
-echo 2. Run as administrator
-echo 3. Try manual installation: %PYTHON_CMD% -m pip install -r requirements.txt
-echo 4. Check your internet connection
-echo.
-pause
-exit /b 1
 
 :start_app
 echo.
@@ -117,6 +102,6 @@ echo The application will be available at: http://localhost:5000
 echo Press Ctrl+C to stop the application
 echo.
 
-%PYTHON_CMD% app.py
+python app.py
 
 pause
