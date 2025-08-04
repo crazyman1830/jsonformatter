@@ -1,0 +1,457 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
+}
+
+/* Container and layout */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    min-height: 100vh;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+header h1 {
+    color: #2c3e50;
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+}
+
+/* Main content */
+main {
+    display: grid;
+    gap: 20px;
+}
+
+/* Input and output sections */
+.input-section,
+.output-section {
+    background-color: #fafafa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.input-section h2,
+.output-section h2 {
+    color: #34495e;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+/* Textarea styling */
+textarea {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 14px;
+    line-height: 19.6px; /* Exact line height for alignment */
+    resize: vertical;
+    min-height: 200px;
+    background-color: white;
+    transition: border-color 0.3s ease;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+textarea::placeholder {
+    color: #95a5a6;
+    font-style: italic;
+}
+
+#json-output {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+}
+
+/* Controls section */
+.controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 20px 0;
+}
+
+/* Button styling */
+button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 140px;
+}
+
+#format-btn {
+    background-color: #3498db;
+    color: white;
+}
+
+#format-btn:hover:not(:disabled) {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+#copy-btn {
+    background-color: #27ae60;
+    color: white;
+}
+
+#copy-btn:hover:not(:disabled) {
+    background-color: #229954;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+}
+
+#copy-with-comments-btn {
+    background-color: #8e44ad;
+    color: white;
+}
+
+#copy-with-comments-btn:hover:not(:disabled) {
+    background-color: #7d3c98;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(142, 68, 173, 0.3);
+}
+
+button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Error message styling */
+.error-message {
+    background-color: #e74c3c;
+    color: white;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 20px;
+    display: none;
+    font-weight: 500;
+}
+
+.error-message.show {
+    display: block;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Success message for copy feedback */
+.success-message {
+    background-color: #27ae60;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    font-weight: 500;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Output container with JSON and comments */
+.output-container {
+    display: grid;
+    gap: 20px;
+}
+
+/* JSON display with line numbers */
+.json-display-container {
+    position: relative;
+    display: flex;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background-color: white;
+    overflow: hidden;
+}
+
+/* Ensure consistent box model for line alignment */
+.json-display-container *,
+.comments-display-container * {
+    box-sizing: border-box;
+}
+
+.line-numbers {
+    background-color: #f8f9fa;
+    border-right: 1px solid #ddd;
+    padding: 15px 10px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 14px;
+    line-height: 19.6px; /* Match textarea line height exactly */
+    color: #666;
+    user-select: none;
+    min-width: 50px;
+    text-align: right;
+    white-space: pre;
+    overflow: hidden;
+}
+
+#json-output {
+    border: none;
+    border-radius: 0;
+    margin: 0;
+    flex: 1;
+    padding: 15px;
+    line-height: 19.6px; /* Match line height exactly */
+    /* Remove default textarea styling that affects alignment */
+    vertical-align: top;
+    outline: none;
+    resize: none;
+}
+
+/* Line highlighting overlay */
+.json-highlight-overlay {
+    position: absolute;
+    top: 0;
+    left: 61px; /* Align with textarea content after line numbers */
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 1;
+    padding: 15px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 14px;
+    line-height: 19.6px; /* Match textarea line height exactly */
+    white-space: pre;
+    overflow: hidden;
+    color: transparent;
+}
+
+.highlighted-line {
+    background-color: rgba(255, 235, 59, 0.4);
+    display: inline;
+    margin: 0;
+    padding: 0 4px;
+    border-radius: 3px;
+    animation: highlightFade 2s ease-out;
+}
+
+@keyframes highlightFade {
+    0% { background-color: rgba(255, 235, 59, 0.7); }
+    100% { background-color: rgba(255, 235, 59, 0.4); }
+}
+
+/* Comments section */
+.comments-section {
+    background-color: #fafafa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.comments-section h2 {
+    color: #34495e;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+/* Comments display with line numbers */
+.comments-display-container {
+    position: relative;
+    display: flex;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background-color: white;
+    overflow: hidden;
+}
+
+.comments-line-numbers {
+    background-color: #f0f8ff;
+    border-right: 1px solid #ddd;
+    padding: 15px 10px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 14px;
+    line-height: 19.6px; /* Match textarea line height exactly */
+    color: #666;
+    user-select: none;
+    min-width: 50px;
+    text-align: right;
+    white-space: pre;
+    overflow: hidden;
+}
+
+#comments-textarea {
+    background-color: #fff8dc;
+    color: #2c3e50;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+    flex: 1;
+    padding: 15px;
+    line-height: 19.6px; /* Match line height exactly */
+    /* Remove default textarea styling that affects alignment */
+    vertical-align: top;
+    outline: none;
+    resize: none;
+}
+
+/* Clear comments button */
+#clear-comments-btn {
+    background-color: #e74c3c;
+    color: white;
+}
+
+#clear-comments-btn:hover:not(:disabled) {
+    background-color: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+}
+
+/* Responsive design */
+@media (min-width: 768px) {
+    .container {
+        padding: 40px;
+    }
+    
+    main {
+        grid-template-areas: 
+            "input input"
+            "controls controls"
+            "output output"
+            "error error";
+        gap: 30px;
+    }
+    
+    .input-section {
+        grid-area: input;
+    }
+    
+    .controls {
+        grid-area: controls;
+    }
+    
+    .output-container {
+        grid-area: output;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+    
+    .error-message {
+        grid-area: error;
+    }
+    
+    textarea {
+        min-height: 300px;
+    }
+}
+
+@media (min-width: 1024px) {
+    header h1 {
+        font-size: 3rem;
+    }
+    
+    textarea {
+        min-height: 400px;
+        font-size: 15px;
+    }
+    
+    .controls {
+        gap: 20px;
+    }
+    
+    button {
+        padding: 15px 30px;
+        font-size: 17px;
+        min-width: 160px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .container {
+        border: 2px solid #000;
+    }
+    
+    textarea {
+        border-width: 3px;
+    }
+    
+    button {
+        border: 2px solid transparent;
+    }
+    
+    #format-btn {
+        border-color: #2980b9;
+    }
+    
+    #copy-btn {
+        border-color: #229954;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    button:hover:not(:disabled) {
+        transform: none;
+    }
+}
