@@ -206,7 +206,8 @@ def main():
     app_instance.run(
         debug=(config_name == 'development'),
         host=host,
-        port=port
+        port=port,
+        reloader_type='stat'  # Use 'stat' reloader to avoid issues with Python 3.13+
     )
 
 if __name__ == '__main__':
