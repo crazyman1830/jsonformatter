@@ -2,73 +2,49 @@
 JSON Formatter Web Application
 Main Flask application entry point
 """
+
+import sys
 import os
-from flask import Flask, render_template
 
-def create_app(config_name='development'):
-    """Application factory function"""
-    app_instance = Flask(__name__)
-    
-    # Load configuration from environment variables
-    secret_key = os.environ.get('SECRET_KEY', 'default-dev-secret-key')
+# Add src directory to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-    # Configuration settings
-    if config_name == 'production':
-        app_instance.config.update(
-            DEBUG=False,
-            TESTING=False,
-            SECRET_KEY=secret_key,
-            JSON_SORT_KEYS=False
-        )
-    elif config_name == 'testing':
-        app_instance.config.update(
-            DEBUG=False,
-            TESTING=True,
-            SECRET_KEY='test-secret-key', # Keep a fixed key for tests
-            JSON_SORT_KEYS=False
-        )
-    else:  # development
-        app_instance.config.update(
-            DEBUG=True,
-            TESTING=False,
-            SECRET_KEY=secret_key,
-            JSON_SORT_KEYS=False
-        )
-    
-    # Register Blueprints
-    import views
-    app_instance.register_blueprint(views.api_bp, url_prefix='/api')
+from core.config import AppConfig
+from core.exceptions import ConfigurationError
+from web.app import create_app
 
-    # Main route to serve the frontend
-    @app_instance.route('/')
-    def index():
-        """Serve the main HTML interface"""
-        return render_template('index.html')
 
-    return app_instance
-
-def main():
+def main() -> None:
     """Main application entry point"""
-    # Get configuration from environment
-    config_name = os.environ.get('FLASK_ENV', 'development')
-    host = os.environ.get('FLASK_HOST', '0.0.0.0')
-    port = int(os.environ.get('FLASK_PORT', 5000))
+    try:
+        # Load configuration from environment
+        config = AppConfig.from_env()
 
-    # Create app with specified configuration
-    app = create_app(config_name)
+        # Create app with configuration
+        app = create_app(config)
 
-    print("Starting JSON Formatter Application...")
-    print(f"Environment: {config_name}")
-    print(f"Host: {host}")
-    print(f"Port: {port}")
+        print("Starting JSON Formatter Application...")
+        print(f"Environment: {config.environment.value}")
+        print(f"Host: {config.host}")
+        print(f"Port: {config.port}")
+        print(f"Debug: {config.debug}")
 
-    # Run the application
-    app.run(
-        debug=(config_name == 'development'),
-        host=host,
-        port=port,
-        reloader_type='stat'  # Use 'stat' reloader to avoid issues with Python 3.13+
-    )
+        # Run the application
+        app.run(
+            debug=config.debug,
+            host=config.host,
+            port=config.port,
+            use_reloader=config.debug,
+            reloader_type="stat",  # Use 'stat' reloader to avoid issues with Python 3.13+
+        )
 
-if __name__ == '__main__':
+    except ConfigurationError as e:
+        print(f"Configuration Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Application Error: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
     main()

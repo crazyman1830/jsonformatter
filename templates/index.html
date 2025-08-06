@@ -12,59 +12,59 @@
             <h1>JSON Formatter</h1>
             <p>Format and prettify your JSON data</p>
         </header>
-        
+
         <main>
             <div class="input-section">
                 <h2>Input JSON</h2>
-                <textarea 
-                    id="json-input" 
-                    placeholder="Enter your JSON here..." 
+                <textarea
+                    id="json-input"
+                    placeholder="Enter your JSON here..."
                     rows="15"
                     aria-label="JSON input area"
                 ></textarea>
             </div>
-            
+
             <div class="controls">
                 <button id="format-btn" type="button">Format JSON</button>
                 <button id="copy-btn" type="button" disabled>Copy JSON</button>
                 <button id="copy-with-comments-btn" type="button" disabled>Copy with Comments</button>
                 <button id="clear-comments-btn" type="button" disabled>Clear Comments</button>
             </div>
-            
+
             <div class="output-container">
                 <div class="output-section">
                     <h2>Formatted Output</h2>
                     <div class="json-display-container">
                         <div class="line-numbers" id="line-numbers"></div>
                         <div class="json-highlight-overlay" id="json-highlight-overlay"></div>
-                        <textarea 
-                            id="json-output" 
-                            placeholder="Formatted JSON will appear here..." 
+                        <textarea
+                            id="json-output"
+                            placeholder="Formatted JSON will appear here..."
                             rows="15"
                             readonly
                             aria-label="Formatted JSON output area"
                         ></textarea>
                     </div>
                 </div>
-                
+
                 <div class="comments-section">
                     <h2>Comments</h2>
                     <div class="comments-display-container">
                         <div class="comments-line-numbers" id="comments-line-numbers"></div>
-                        <textarea 
-                            id="comments-textarea" 
-                            placeholder="Add your comments here... (one comment per line)" 
+                        <textarea
+                            id="comments-textarea"
+                            placeholder="Add your comments here... (one comment per line)"
                             rows="15"
                             aria-label="Comments area"
                         ></textarea>
                     </div>
                 </div>
             </div>
-            
+
             <div id="error-message" class="error-message" role="alert" aria-live="polite"></div>
         </main>
     </div>
-    
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

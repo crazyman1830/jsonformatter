@@ -366,34 +366,34 @@ button:active:not(:disabled) {
     .container {
         padding: 40px;
     }
-    
+
     main {
-        grid-template-areas: 
+        grid-template-areas:
             "input input"
             "controls controls"
             "output output"
             "error error";
         gap: 30px;
     }
-    
+
     .input-section {
         grid-area: input;
     }
-    
+
     .controls {
         grid-area: controls;
     }
-    
+
     .output-container {
         grid-area: output;
         grid-template-columns: 1fr 1fr;
         gap: 30px;
     }
-    
+
     .error-message {
         grid-area: error;
     }
-    
+
     textarea {
         min-height: 300px;
     }
@@ -403,16 +403,16 @@ button:active:not(:disabled) {
     header h1 {
         font-size: 3rem;
     }
-    
+
     textarea {
         min-height: 400px;
         font-size: 15px;
     }
-    
+
     .controls {
         gap: 20px;
     }
-    
+
     button {
         padding: 15px 30px;
         font-size: 17px;
@@ -425,19 +425,19 @@ button:active:not(:disabled) {
     .container {
         border: 2px solid #000;
     }
-    
+
     textarea {
         border-width: 3px;
     }
-    
+
     button {
         border: 2px solid transparent;
     }
-    
+
     #format-btn {
         border-color: #2980b9;
     }
-    
+
     #copy-btn {
         border-color: #229954;
     }
@@ -450,7 +450,7 @@ button:active:not(:disabled) {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
-    
+
     button:hover:not(:disabled) {
         transform: none;
     }

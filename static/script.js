@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
     copyBtn.addEventListener('click', copyToClipboard);
     copyWithCommentsBtn.addEventListener('click', copyWithComments);
     clearCommentsBtn.addEventListener('click', clearAllComments);
-    
+
     // Auto-save comments with debounce
     commentsTextarea.addEventListener('input', function() {
         clearTimeout(this.saveTimeout);
@@ -41,10 +41,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function formatJSON() {
         // Get input value
         const inputValue = jsonInput.value.trim();
-        
+
         // Clear previous error messages
         clearError();
-        
+
         // Validate input is not empty
         if (!inputValue) {
             showError('Please enter JSON data to format');
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const jsonStyle = window.getComputedStyle(jsonOutput);
         const lineHeight = jsonStyle.lineHeight;
         const fontSize = jsonStyle.fontSize;
-        
+
         // Apply same line height to line numbers
         lineNumbers.style.lineHeight = lineHeight;
         lineNumbers.style.fontSize = fontSize;
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
         commentsLineNumbers.style.fontSize = fontSize;
         jsonHighlightOverlay.style.lineHeight = lineHeight;
         jsonHighlightOverlay.style.fontSize = fontSize;
-        
+
         // Ensure comments textarea matches
         commentsTextarea.style.lineHeight = lineHeight;
         commentsTextarea.style.fontSize = fontSize;
@@ -169,10 +169,10 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function syncCommentsWithJSON() {
         if (!jsonOutput.value) return;
-        
+
         const jsonLines = jsonOutput.value.split('\n');
         const commentLines = commentsTextarea.value.split('\n');
-        
+
         // Adjust comments to match JSON line count
         if (commentLines.length < jsonLines.length) {
             // Add empty lines to match JSON
@@ -189,11 +189,11 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function handleCursorPosition() {
         if (!jsonOutput.value) return;
-        
+
         const cursorPosition = commentsTextarea.selectionStart;
         const textBeforeCursor = commentsTextarea.value.substring(0, cursorPosition);
         const currentLine = textBeforeCursor.split('\n').length;
-        
+
         highlightJSONLine(currentLine);
     }
 
@@ -206,13 +206,13 @@ document.addEventListener('DOMContentLoaded', function() {
             jsonHighlightOverlay.innerHTML = '';
             return;
         }
-        
+
         const jsonLines = jsonOutput.value.split('\n');
         if (lineNumber > jsonLines.length) {
             jsonHighlightOverlay.innerHTML = '';
             return;
         }
-        
+
         // Create highlight overlay content
         let overlayContent = '';
         jsonLines.forEach((line, index) => {
@@ -222,11 +222,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 overlayContent += line + '\n';
             }
         });
-        
+
         // Remove last newline
         overlayContent = overlayContent.slice(0, -1);
         jsonHighlightOverlay.innerHTML = overlayContent;
-        
+
         // Auto-clear highlight after 3 seconds
         clearTimeout(window.highlightTimeout);
         window.highlightTimeout = setTimeout(() => {
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         jsonLines.forEach((line, index) => {
             const comment = commentLines[index];
-            
+
             if (comment && comment.trim()) {
                 result += line + ' // ' + comment.trim() + '\n';
             } else {
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tempTextArea.value = text;
         document.body.appendChild(tempTextArea);
         tempTextArea.select();
-        
+
         try {
             const successful = document.execCommand('copy');
             if (successful) {
@@ -434,14 +434,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function showCopySuccess(button = copyBtn, successText = 'Copied!') {
         // Store original button text
         const originalText = button.textContent;
-        
+
         // Show success feedback
         button.textContent = successText;
         button.style.backgroundColor = '#28a745';
-        
+
         // Clear any existing error messages
         clearError();
-        
+
         // Reset button after 2 seconds
         setTimeout(() => {
             button.textContent = originalText;
@@ -457,10 +457,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Enhanced error message display
         errorMessage.textContent = message;
         errorMessage.style.display = 'block';
-        
+
         // Add error styling
         errorMessage.className = 'error-message show';
-        
+
         // Auto-hide error after 5 seconds for non-critical errors
         if (!message.toLowerCase().includes('invalid json')) {
             setTimeout(() => {
@@ -481,7 +481,7 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Handle edge cases and user interactions
      */
-    
+
     // Clear output and disable copy button when input changes
     jsonInput.addEventListener('input', function() {
         if (jsonOutput.value) {
@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
         commentsLineNumbers.scrollTop = this.scrollTop;
         jsonHighlightOverlay.scrollTop = this.scrollTop;
     });
-    
+
     commentsTextarea.addEventListener('scroll', function() {
         lineNumbers.scrollTop = this.scrollTop;
         jsonOutput.scrollTop = this.scrollTop;
@@ -509,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load comments on page load
     loadComments();
-    
+
     // Initialize alignment on page load
     setTimeout(alignLineNumbers, 100);
 
