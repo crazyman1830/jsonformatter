@@ -60,8 +60,27 @@ echo.
 
 REM --- Virtual Environment Setup ---
 set VENV_DIR=venv
+set VENV_PYTHON=%VENV_DIR%\Scripts\python.exe
+set VENV_NEEDS_CREATION=0
 
-if not exist %VENV_DIR%\Scripts\activate.bat (
+REM Check if the virtual environment exists and is valid
+if exist %VENV_PYTHON% (
+    echo Found existing virtual environment. Verifying...
+    %VENV_PYTHON% --version 2>&1 | findstr /C:"Python 3" >nul
+    if errorlevel 1 (
+        echo WARNING: The existing virtual environment in '%VENV_DIR%' seems corrupted or uses a non-Python 3 version.
+        echo Deleting the old environment to recreate it.
+        rmdir /s /q %VENV_DIR% >nul 2>&1
+        set VENV_NEEDS_CREATION=1
+    ) else (
+        echo Virtual environment is valid.
+    )
+) else (
+    set VENV_NEEDS_CREATION=1
+)
+
+REM Create the virtual environment if it's marked for creation
+if %VENV_NEEDS_CREATION% equ 1 (
     echo Creating virtual environment in '%VENV_DIR%'...
     %PYTHON_CMD% -m venv %VENV_DIR%
     if errorlevel 1 (
