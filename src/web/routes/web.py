@@ -1,8 +1,9 @@
 """Web routes for serving the main HTML interface and static content."""
 
 import logging
-from typing import Optional, Union, Tuple, Dict
-from flask import Blueprint, send_from_directory, current_app, Response
+from typing import Dict, Optional, Tuple, Union
+
+from flask import Blueprint, Response, current_app, send_from_directory
 
 
 class WebRoutes:

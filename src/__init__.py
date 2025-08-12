@@ -1,1 +1,1 @@
-# JSON Formatter Application
+"""Source directory for the JSON Formatter application."""

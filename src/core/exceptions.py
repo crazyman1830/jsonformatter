@@ -1,6 +1,6 @@
 """Custom exception classes for the JSON Formatter application."""
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class JSONFormatterError(Exception):

@@ -6,8 +6,10 @@ with comprehensive validation and error handling capabilities.
 """
 
 import json
-from typing import Any, Dict, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
+
+import orjson
 
 
 @dataclass
@@ -74,17 +76,16 @@ class JSONData:
             return self._validation_result
 
         try:
-            json.loads(self.raw_data)
+            # Use orjson for faster parsing and store the result to avoid re-parsing
+            self._parsed_data = orjson.loads(self.raw_data)
             self._validation_result = JSONValidationResult(is_valid=True)
             return self._validation_result
 
-        except json.JSONDecodeError as e:
-            # Extract line number from JSON decode error
-            line_number = getattr(e, "lineno", None)
-            error_msg = f"Invalid JSON: {str(e)}"
-
+        except orjson.JSONDecodeError as e:
+            # Create a more informative error message from orjson's exception
+            error_msg = f"Invalid JSON at line {e.lineno} column {e.colno}: {e.msg}"
             self._validation_result = JSONValidationResult(
-                is_valid=False, error_message=error_msg, line_number=line_number
+                is_valid=False, error_message=error_msg, line_number=e.lineno
             )
             return self._validation_result
 
@@ -96,30 +97,28 @@ class JSONData:
 
     def parse(self) -> Any:
         """
-        Parse the JSON data.
+        Parse the JSON data. Ensures validation is performed.
 
         Returns:
             Any: Parsed JSON data
 
         Raises:
             ValueError: If JSON is invalid
-            Exception: For other parsing errors
         """
-        if self._parsed_data is not None:
-            return self._parsed_data
-
+        # self.validate() will populate self._parsed_data if successful
         validation_result = self.validate()
         if not validation_result.is_valid:
             raise ValueError(validation_result.error_message)
 
-        try:
-            self._parsed_data = json.loads(self.raw_data)
+        # The parsed data should now be available
+        if self._parsed_data is not None:
             return self._parsed_data
 
-        except json.JSONDecodeError as e:
+        # This is a fallback that should not normally be reached
+        try:
+            return orjson.loads(self.raw_data)
+        except orjson.JSONDecodeError as e:
             raise ValueError(f"JSON parsing error: {str(e)}")
-        except Exception as e:
-            raise Exception(f"Unexpected error during parsing: {str(e)}")
 
     def format(self, indent: int = 2, sort_keys: bool = True) -> JSONFormatResult:
         """
@@ -132,17 +131,23 @@ class JSONData:
         Returns:
             JSONFormatResult: Formatting result with formatted JSON or error
         """
-        validation_result = self.validate()
-        if not validation_result.is_valid:
-            return JSONFormatResult(
-                success=False, error_message=validation_result.error_message
-            )
-
         try:
             parsed_data = self.parse()
-            formatted_json = json.dumps(
-                parsed_data, indent=indent, sort_keys=sort_keys, ensure_ascii=False
-            )
+
+            # For the most common case (indent=2), use high-performance orjson.
+            # For other indents, fall back to the standard json library to support them.
+            if indent == 2:
+                option = orjson.OPT_INDENT_2
+                if sort_keys:
+                    option |= orjson.OPT_SORT_KEYS
+
+                # orjson.dumps returns bytes, so we decode it. ensure_ascii=False is default.
+                formatted_json_bytes = orjson.dumps(parsed_data, option=option)
+                formatted_json = formatted_json_bytes.decode("utf-8")
+            else:
+                formatted_json = json.dumps(
+                    parsed_data, indent=indent, sort_keys=sort_keys, ensure_ascii=False
+                )
 
             # Count lines in formatted JSON
             line_count = len(formatted_json.splitlines())
@@ -152,6 +157,7 @@ class JSONData:
             )
 
         except ValueError as e:
+            # This catches validation errors from self.parse()
             return JSONFormatResult(success=False, error_message=str(e))
         except Exception as e:
             return JSONFormatResult(

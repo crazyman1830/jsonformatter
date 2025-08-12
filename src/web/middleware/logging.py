@@ -1,9 +1,10 @@
 """Request logging middleware for Flask applications."""
 
-import time
 import logging
-from typing import Optional, TYPE_CHECKING
-from flask import Flask, request, g
+import time
+from typing import TYPE_CHECKING, Optional
+
+from flask import Flask, g, request
 
 if TYPE_CHECKING:
     from flask import Response

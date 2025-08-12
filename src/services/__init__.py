@@ -1,7 +1,7 @@
-# Business logic services
+"""Services layer for business logic."""
 
-from .json_processor import JSONProcessorService
 from .comment_service import CommentService, CommentStorage, SessionCommentStorage
+from .json_processor import JSONProcessorService
 
 __all__ = [
     "JSONProcessorService",
