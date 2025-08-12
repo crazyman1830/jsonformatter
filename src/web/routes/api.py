@@ -1,12 +1,13 @@
 """API routes for the JSON Formatter application."""
 
 import logging
-from typing import Dict, Any, Tuple, Optional
+from typing import Any, Dict, Optional, Tuple
+
 from flask import Blueprint, request, session
 
-from services.json_processor import JSONProcessorService
+from core.exceptions import ProcessingError, ValidationError
 from services.comment_service import CommentService
-from core.exceptions import ValidationError, ProcessingError
+from services.json_processor import JSONProcessorService
 
 
 class APIRoutes:
@@ -70,7 +71,7 @@ class APIRoutes:
 
     def index(self) -> Dict[str, Any]:
         """
-        API root endpoint providing service information.
+        Provide service information for the API root endpoint.
 
         Returns:
             Dict[str, Any]: API information response

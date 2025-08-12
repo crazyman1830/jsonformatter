@@ -1,207 +1,241 @@
 /**
- * JSON Formatter Client-Side JavaScript
- * Handles format button functionality and AJAX requests
+ * JSON Formatter Client-Side Application
+ * This script is encapsulated in an App object to avoid polluting the global namespace.
  */
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Get DOM elements
-    const jsonInput = document.getElementById('json-input');
-    const jsonOutput = document.getElementById('json-output');
-    const formatBtn = document.getElementById('format-btn');
-    const copyBtn = document.getElementById('copy-btn');
-    const copyWithCommentsBtn = document.getElementById('copy-with-comments-btn');
-    const clearCommentsBtn = document.getElementById('clear-comments-btn');
-    const errorMessage = document.getElementById('error-message');
-    const lineNumbers = document.getElementById('line-numbers');
-    const commentsTextarea = document.getElementById('comments-textarea');
-    const commentsLineNumbers = document.getElementById('comments-line-numbers');
-    const jsonHighlightOverlay = document.getElementById('json-highlight-overlay');
-
-    // Add event listeners
-    formatBtn.addEventListener('click', formatJSON);
-    copyBtn.addEventListener('click', copyToClipboard);
-    copyWithCommentsBtn.addEventListener('click', copyWithComments);
-    clearCommentsBtn.addEventListener('click', clearAllComments);
-
-    // Auto-save comments with debounce
-    commentsTextarea.addEventListener('input', function() {
-        clearTimeout(this.saveTimeout);
-        this.saveTimeout = setTimeout(saveComments, 500);
-        syncCommentsWithJSON();
-    });
-
-    // Add cursor position tracking for line highlighting
-    commentsTextarea.addEventListener('click', handleCursorPosition);
-    commentsTextarea.addEventListener('keyup', handleCursorPosition);
-    commentsTextarea.addEventListener('focus', handleCursorPosition);
+const App = {
+    // Properties to hold DOM elements
+    elements: {},
+    // Timeout for debounced comment saving
+    saveTimeout: null,
 
     /**
-     * Format JSON by sending AJAX request to the server
+     * Initialize the application
      */
-    function formatJSON() {
-        // Get input value
+    init: function() {
+        this.cacheDOMElements();
+        this.addEventListeners();
+        this.loadComments();
+        setTimeout(() => this.alignLineNumbers(), 100);
+    },
+
+    /**
+     * Cache all necessary DOM elements for performance
+     */
+    cacheDOMElements: function() {
+        this.elements = {
+            jsonInput: document.getElementById('json-input'),
+            jsonOutput: document.getElementById('json-output'),
+            formatBtn: document.getElementById('format-btn'),
+            copyBtn: document.getElementById('copy-btn'),
+            copyWithCommentsBtn: document.getElementById('copy-with-comments-btn'),
+            clearCommentsBtn: document.getElementById('clear-comments-btn'),
+            errorMessage: document.getElementById('error-message'),
+            lineNumbers: document.getElementById('line-numbers'),
+            commentsTextarea: document.getElementById('comments-textarea'),
+            commentsLineNumbers: document.getElementById('comments-line-numbers'),
+            jsonHighlightOverlay: document.getElementById('json-highlight-overlay'),
+        };
+    },
+
+    /**
+     * Add all event listeners
+     */
+    addEventListeners: function() {
+        const { jsonInput, jsonOutput, formatBtn, copyBtn, copyWithCommentsBtn, clearCommentsBtn, commentsTextarea } = this.elements;
+
+        formatBtn.addEventListener('click', () => this.formatJSON());
+        copyBtn.addEventListener('click', () => this.copyToClipboard());
+        copyWithCommentsBtn.addEventListener('click', () => this.copyWithComments());
+        clearCommentsBtn.addEventListener('click', () => this.clearAllComments());
+
+        commentsTextarea.addEventListener('input', () => {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = setTimeout(() => this.saveComments(), 500);
+            this.syncCommentsWithJSON();
+        });
+
+        commentsTextarea.addEventListener('click', () => this.handleCursorPosition());
+        commentsTextarea.addEventListener('keyup', () => this.handleCursorPosition());
+        commentsTextarea.addEventListener('focus', () => this.handleCursorPosition());
+
+        jsonInput.addEventListener('input', () => {
+            if (jsonOutput.value) {
+                this.clearOutput();
+                copyBtn.disabled = true;
+                copyWithCommentsBtn.disabled = true;
+                this.clearError();
+            }
+        });
+
+        const syncScroll = (e) => {
+            const { scrollTop } = e.target;
+            this.elements.lineNumbers.scrollTop = scrollTop;
+            this.elements.commentsTextarea.scrollTop = scrollTop;
+            this.elements.commentsLineNumbers.scrollTop = scrollTop;
+            this.elements.jsonHighlightOverlay.scrollTop = scrollTop;
+            this.elements.jsonOutput.scrollTop = scrollTop;
+        };
+
+        jsonOutput.addEventListener('scroll', syncScroll);
+        commentsTextarea.addEventListener('scroll', syncScroll);
+
+        jsonInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                this.formatJSON();
+            }
+        });
+
+        jsonInput.addEventListener('paste', () => {
+            setTimeout(() => {
+                const pastedText = jsonInput.value.trim();
+                if (pastedText && this.isLikelyJSON(pastedText)) {
+                    this.formatJSON();
+                }
+            }, 10);
+        });
+
+        window.addEventListener('beforeunload', (e) => {
+            if (jsonInput.value.trim() && !jsonOutput.value.trim()) {
+                e.preventDefault();
+                e.returnValue = 'You have unformatted JSON. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        });
+    },
+
+    /**
+     * Format JSON by sending an AJAX request to the server
+     */
+    formatJSON: function() {
+        const { jsonInput, formatBtn } = this.elements;
         const inputValue = jsonInput.value.trim();
 
-        // Clear previous error messages
-        clearError();
+        this.clearError();
 
-        // Validate input is not empty
         if (!inputValue) {
-            showError('Please enter JSON data to format');
+            this.showError('Please enter JSON data to format');
             return;
         }
 
-        // Disable format button during processing
         formatBtn.disabled = true;
         formatBtn.textContent = 'Formatting...';
 
-        // Prepare request data
-        const requestData = {
-            json_data: inputValue
-        };
-
-        // Send AJAX request to format endpoint
-        fetch('/format', {
+        fetch('/api/format', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ json_data: inputValue })
         })
-        .then(response => {
-            return response.json().then(data => ({
-                status: response.status,
-                data: data
-            }));
-        })
-        .then(result => {
-            handleFormatResponse(result.data, result.status);
-        })
+        .then(response => response.json().then(data => ({ status: response.status, data })))
+        .then(result => this.handleFormatResponse(result.data, result.status))
         .catch(error => {
             console.error('Network error:', error);
-            showError('Network error: Unable to connect to server');
+            this.showError('Network error: Unable to connect to server');
         })
         .finally(() => {
-            // Re-enable format button
             formatBtn.disabled = false;
             formatBtn.textContent = 'Format JSON';
         });
-    }
+    },
 
     /**
      * Handle the response from the format endpoint
-     * @param {Object} data - Response data from server
-     * @param {number} status - HTTP status code
      */
-    function handleFormatResponse(data, status) {
+    handleFormatResponse: function(data, status) {
         if (data.success && status === 200) {
-            // Successful formatting
-            displayFormattedJSON(data.formatted_json);
-            clearError();
-            // Enable copy buttons
-            copyBtn.disabled = false;
-            copyWithCommentsBtn.disabled = false;
+            this.displayFormattedJSON(data.formatted_json);
+            this.clearError();
+            this.elements.copyBtn.disabled = false;
+            this.elements.copyWithCommentsBtn.disabled = false;
         } else {
-            // Error occurred
-            showError(data.error_message || 'An error occurred while formatting JSON');
-            clearOutput();
-            // Disable copy buttons
-            copyBtn.disabled = true;
-            copyWithCommentsBtn.disabled = true;
+            this.showError(data.error_message || 'An error occurred while formatting JSON');
+            this.clearOutput();
+            this.elements.copyBtn.disabled = true;
+            this.elements.copyWithCommentsBtn.disabled = true;
         }
-    }
+    },
 
     /**
      * Display formatted JSON in the output area
-     * @param {string} formattedJSON - The formatted JSON string
      */
-    function displayFormattedJSON(formattedJSON) {
-        jsonOutput.value = formattedJSON;
-        updateLineNumbers();
-        updateCommentsLineNumbers();
-        syncCommentsWithJSON();
-        alignLineNumbers();
-        clearCommentsBtn.disabled = false;
-    }
+    displayFormattedJSON: function(formattedJSON) {
+        this.elements.jsonOutput.value = formattedJSON;
+        this.updateLineNumbers();
+        this.updateCommentsLineNumbers();
+        this.syncCommentsWithJSON();
+        this.alignLineNumbers();
+        this.elements.clearCommentsBtn.disabled = false;
+    },
 
     /**
-     * Align line numbers with textarea content
+     * Align line numbers and textareas for consistent display
      */
-    function alignLineNumbers() {
-        // Get computed styles
-        const jsonStyle = window.getComputedStyle(jsonOutput);
-        const lineHeight = jsonStyle.lineHeight;
-        const fontSize = jsonStyle.fontSize;
+    alignLineNumbers: function() {
+        const { jsonOutput, lineNumbers, commentsLineNumbers, jsonHighlightOverlay, commentsTextarea } = this.elements;
+        const computedStyle = window.getComputedStyle(jsonOutput);
+        const lineHeight = computedStyle.lineHeight;
+        const fontSize = computedStyle.fontSize;
 
-        // Apply same line height to line numbers
-        lineNumbers.style.lineHeight = lineHeight;
-        lineNumbers.style.fontSize = fontSize;
-        commentsLineNumbers.style.lineHeight = lineHeight;
-        commentsLineNumbers.style.fontSize = fontSize;
-        jsonHighlightOverlay.style.lineHeight = lineHeight;
-        jsonHighlightOverlay.style.fontSize = fontSize;
-
-        // Ensure comments textarea matches
-        commentsTextarea.style.lineHeight = lineHeight;
-        commentsTextarea.style.fontSize = fontSize;
-    }
+        const elementsToStyle = [lineNumbers, commentsLineNumbers, jsonHighlightOverlay, commentsTextarea];
+        elementsToStyle.forEach(el => {
+            el.style.lineHeight = lineHeight;
+            el.style.fontSize = fontSize;
+        });
+    },
 
     /**
-     * Update line numbers display for JSON output
+     * Update line numbers for the main JSON output
      */
-    function updateLineNumbers() {
-        const lines = jsonOutput.value.split('\n');
-        const lineNumbersText = lines.map((_, index) => (index + 1).toString()).join('\n');
-        lineNumbers.textContent = lineNumbersText;
-    }
+    updateLineNumbers: function() {
+        const lines = this.elements.jsonOutput.value.split('\n');
+        this.elements.lineNumbers.textContent = lines.map((_, i) => i + 1).join('\n');
+    },
 
     /**
-     * Update line numbers display for comments
+     * Update line numbers for the comments section
      */
-    function updateCommentsLineNumbers() {
-        const jsonLines = jsonOutput.value.split('\n');
-        const lineNumbersText = jsonLines.map((_, index) => (index + 1).toString()).join('\n');
-        commentsLineNumbers.textContent = lineNumbersText;
-    }
+    updateCommentsLineNumbers: function() {
+        const jsonLines = this.elements.jsonOutput.value.split('\n');
+        this.elements.commentsLineNumbers.textContent = jsonLines.map((_, i) => i + 1).join('\n');
+    },
 
     /**
-     * Sync comments textarea with JSON line count
+     * Sync comments textarea to have the same number of lines as the JSON output
      */
-    function syncCommentsWithJSON() {
+    syncCommentsWithJSON: function() {
+        const { jsonOutput, commentsTextarea } = this.elements;
         if (!jsonOutput.value) return;
 
         const jsonLines = jsonOutput.value.split('\n');
         const commentLines = commentsTextarea.value.split('\n');
 
-        // Adjust comments to match JSON line count
         if (commentLines.length < jsonLines.length) {
-            // Add empty lines to match JSON
             const emptyLines = new Array(jsonLines.length - commentLines.length).fill('');
             commentsTextarea.value = commentLines.concat(emptyLines).join('\n');
         } else if (commentLines.length > jsonLines.length) {
-            // Trim extra lines
             commentsTextarea.value = commentLines.slice(0, jsonLines.length).join('\n');
         }
-    }
+    },
 
     /**
-     * Handle cursor position changes in comments textarea
+     * Highlight the corresponding JSON line based on cursor position in the comments textarea
      */
-    function handleCursorPosition() {
+    handleCursorPosition: function() {
+        const { jsonOutput, commentsTextarea } = this.elements;
         if (!jsonOutput.value) return;
 
         const cursorPosition = commentsTextarea.selectionStart;
         const textBeforeCursor = commentsTextarea.value.substring(0, cursorPosition);
         const currentLine = textBeforeCursor.split('\n').length;
-
-        highlightJSONLine(currentLine);
-    }
+        this.highlightJSONLine(currentLine);
+    },
 
     /**
-     * Highlight a specific line in the JSON output
-     * @param {number} lineNumber - Line number to highlight (1-based)
+     * Apply a highlight to a specific line in the JSON output
      */
-    function highlightJSONLine(lineNumber) {
+    highlightJSONLine: function(lineNumber) {
+        const { jsonOutput, jsonHighlightOverlay } = this.elements;
         if (!jsonOutput.value || lineNumber < 1) {
             jsonHighlightOverlay.innerHTML = '';
             return;
@@ -213,343 +247,186 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Create highlight overlay content
-        let overlayContent = '';
-        jsonLines.forEach((line, index) => {
-            if (index + 1 === lineNumber) {
-                overlayContent += `<span class="highlighted-line">${line}</span>\n`;
-            } else {
-                overlayContent += line + '\n';
-            }
-        });
+        const overlayContent = jsonLines.map((line, index) =>
+            (index + 1 === lineNumber) ? `<span class="highlighted-line">${line || ' '}</span>` : (line || ' ')
+        ).join('\n');
 
-        // Remove last newline
-        overlayContent = overlayContent.slice(0, -1);
         jsonHighlightOverlay.innerHTML = overlayContent;
 
-        // Auto-clear highlight after 3 seconds
-        clearTimeout(window.highlightTimeout);
-        window.highlightTimeout = setTimeout(() => {
+        clearTimeout(this.highlightTimeout);
+        this.highlightTimeout = setTimeout(() => {
             jsonHighlightOverlay.innerHTML = '';
         }, 3000);
-    }
+    },
 
     /**
-     * Clear all comments
+     * Clear all comments and save the change
      */
-    function clearAllComments() {
-        commentsTextarea.value = '';
-        saveComments();
-    }
+    clearAllComments: function() {
+        this.elements.commentsTextarea.value = '';
+        this.saveComments();
+    },
 
     /**
-     * Save comments to server
+     * Save comments to the server
      */
-    function saveComments() {
-        fetch('/comments', {
+    saveComments: function() {
+        fetch('/api/comments', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                comments: commentsTextarea.value
-            })
-        })
-        .catch(error => {
-            console.error('Error saving comments:', error);
-        });
-    }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comments: this.elements.commentsTextarea.value })
+        }).catch(error => console.error('Error saving comments:', error));
+    },
 
     /**
-     * Load comments from server
+     * Load comments from the server
      */
-    function loadComments() {
-        fetch('/comments')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                commentsTextarea.value = data.comments || '';
-            }
-        })
-        .catch(error => {
-            console.error('Error loading comments:', error);
-        });
-    }
+    loadComments: function() {
+        fetch('/api/comments')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.elements.commentsTextarea.value = data.comments || '';
+                }
+            })
+            .catch(error => console.error('Error loading comments:', error));
+    },
+
+    /**
+     * Copy JSON to clipboard
+     */
+    copyToClipboard: function() {
+        const textToCopy = this.elements.jsonOutput.value;
+        if (!textToCopy.trim()) {
+            this.showError('No formatted JSON to copy');
+            return;
+        }
+        this._copyText(textToCopy, this.elements.copyBtn, 'Copied!');
+    },
 
     /**
      * Copy JSON with comments to clipboard
      */
-    function copyWithComments() {
+    copyWithComments: function() {
+        const { jsonOutput, commentsTextarea } = this.elements;
         if (!jsonOutput.value.trim()) {
-            showError('No formatted JSON to copy');
+            this.showError('No formatted JSON to copy');
             return;
         }
 
         const jsonLines = jsonOutput.value.split('\n');
         const commentLines = commentsTextarea.value.split('\n');
-        let result = '';
 
-        jsonLines.forEach((line, index) => {
+        const result = jsonLines.map((line, index) => {
             const comment = commentLines[index];
+            return (comment && comment.trim()) ? `${line} // ${comment.trim()}` : line;
+        }).join('\n');
 
-            if (comment && comment.trim()) {
-                result += line + ' // ' + comment.trim() + '\n';
-            } else {
-                result += line + '\n';
-            }
-        });
-
-        // Remove last newline
-        result = result.slice(0, -1);
-
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(result)
-                    .then(() => {
-                        showCopySuccess(copyWithCommentsBtn, 'Copied with Comments!');
-                    })
-                    .catch(err => {
-                        console.error('Clipboard API failed:', err);
-                        fallbackCopyText(result, copyWithCommentsBtn, 'Copied with Comments!');
-                    });
-            } else {
-                fallbackCopyText(result, copyWithCommentsBtn, 'Copied with Comments!');
-            }
-        } catch (err) {
-            console.error('Copy failed:', err);
-            showError('Failed to copy to clipboard');
-        }
-    }
+        this._copyText(result, this.elements.copyWithCommentsBtn, 'Copied with Comments!');
+    },
 
     /**
-     * Fallback copy method for custom text
+     * Private helper to copy text to the clipboard, with fallback
      */
-    function fallbackCopyText(text, button, successText) {
-        const tempTextArea = document.createElement('textarea');
-        tempTextArea.value = text;
-        document.body.appendChild(tempTextArea);
-        tempTextArea.select();
+    _copyText: function(text, button, successText) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text)
+                .then(() => this.showCopySuccess(button, successText))
+                .catch(err => {
+                    console.error('Clipboard API failed:', err);
+                    this._fallbackCopy(text, button, successText);
+                });
+        } else {
+            this._fallbackCopy(text, button, successText);
+        }
+    },
 
+    /**
+     * Fallback copy method using a temporary textarea
+     */
+    _fallbackCopy: function(text, button, successText) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
         try {
             const successful = document.execCommand('copy');
             if (successful) {
-                showCopySuccess(button, successText);
+                this.showCopySuccess(button, successText);
             } else {
-                showError('Failed to copy to clipboard');
+                this.showError('Failed to copy to clipboard');
             }
         } catch (err) {
             console.error('execCommand copy failed:', err);
-            showError('Copy to clipboard not supported in this browser');
-        } finally {
-            document.body.removeChild(tempTextArea);
+            this.showError('Copy to clipboard not supported in this browser');
         }
-    }
+        document.body.removeChild(textArea);
+    },
 
     /**
-     * Show error message
-     * @param {string} message - Error message to display
+     * Show a temporary success message on a button
      */
-    function showError(message) {
+    showCopySuccess: function(button, successText) {
+        const originalText = button.textContent;
+        button.textContent = successText;
+        button.style.backgroundColor = '#28a745';
+        this.clearError();
+
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.style.backgroundColor = '';
+        }, 2000);
+    },
+
+    /**
+     * Display an error message
+     */
+    showError: function(message) {
+        const { errorMessage } = this.elements;
         errorMessage.textContent = message;
         errorMessage.style.display = 'block';
-    }
+        errorMessage.className = 'error-message show';
+
+        setTimeout(() => {
+            if (errorMessage.textContent === message) {
+                this.clearError();
+            }
+        }, 5000);
+    },
 
     /**
-     * Clear error message
+     * Clear the error message
      */
-    function clearError() {
+    clearError: function() {
+        const { errorMessage } = this.elements;
         errorMessage.textContent = '';
         errorMessage.style.display = 'none';
-    }
+        errorMessage.className = 'error-message';
+    },
 
     /**
-     * Clear output area
+     * Clear all output areas
      */
-    function clearOutput() {
+    clearOutput: function() {
+        const { jsonOutput, lineNumbers, commentsLineNumbers, jsonHighlightOverlay, clearCommentsBtn, copyWithCommentsBtn } = this.elements;
         jsonOutput.value = '';
         lineNumbers.textContent = '';
         commentsLineNumbers.textContent = '';
         jsonHighlightOverlay.innerHTML = '';
         clearCommentsBtn.disabled = true;
         copyWithCommentsBtn.disabled = true;
-    }
+    },
 
     /**
-     * Copy formatted JSON to clipboard with visual feedback
+     * Heuristic to check if a string is likely to be JSON
      */
-    function copyToClipboard() {
-        // Check if there's content to copy
-        if (!jsonOutput.value.trim()) {
-            showError('No formatted JSON to copy');
-            return;
-        }
-
-        // Try to copy to clipboard
-        try {
-            // Select the output text
-            jsonOutput.select();
-            jsonOutput.setSelectionRange(0, 99999); // For mobile devices
-
-            // Use the modern clipboard API if available
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(jsonOutput.value)
-                    .then(() => {
-                        showCopySuccess();
-                    })
-                    .catch(err => {
-                        console.error('Clipboard API failed:', err);
-                        // Fallback to execCommand
-                        fallbackCopy();
-                    });
-            } else {
-                // Fallback for older browsers
-                fallbackCopy();
-            }
-        } catch (err) {
-            console.error('Copy failed:', err);
-            showError('Failed to copy to clipboard');
-        }
-    }
-
-    /**
-     * Fallback copy method using execCommand
-     */
-    function fallbackCopy() {
-        try {
-            const successful = document.execCommand('copy');
-            if (successful) {
-                showCopySuccess();
-            } else {
-                showError('Failed to copy to clipboard');
-            }
-        } catch (err) {
-            console.error('execCommand copy failed:', err);
-            showError('Copy to clipboard not supported in this browser');
-        }
-    }
-
-    /**
-     * Show copy success feedback
-     */
-    function showCopySuccess(button = copyBtn, successText = 'Copied!') {
-        // Store original button text
-        const originalText = button.textContent;
-
-        // Show success feedback
-        button.textContent = successText;
-        button.style.backgroundColor = '#28a745';
-
-        // Clear any existing error messages
-        clearError();
-
-        // Reset button after 2 seconds
-        setTimeout(() => {
-            button.textContent = originalText;
-            button.style.backgroundColor = '';
-        }, 2000);
-    }
-
-    /**
-     * Enhanced error handling for different error types
-     * @param {string} message - Error message to display
-     */
-    function showError(message) {
-        // Enhanced error message display
-        errorMessage.textContent = message;
-        errorMessage.style.display = 'block';
-
-        // Add error styling
-        errorMessage.className = 'error-message show';
-
-        // Auto-hide error after 5 seconds for non-critical errors
-        if (!message.toLowerCase().includes('invalid json')) {
-            setTimeout(() => {
-                clearError();
-            }, 5000);
-        }
-    }
-
-    /**
-     * Enhanced clear error with animation
-     */
-    function clearError() {
-        errorMessage.textContent = '';
-        errorMessage.style.display = 'none';
-        errorMessage.className = 'error-message';
-    }
-
-    /**
-     * Handle edge cases and user interactions
-     */
-
-    // Clear output and disable copy button when input changes
-    jsonInput.addEventListener('input', function() {
-        if (jsonOutput.value) {
-            clearOutput();
-            copyBtn.disabled = true;
-            copyWithCommentsBtn.disabled = true;
-            clearError();
-        }
-    });
-
-    // Sync scroll between JSON output, line numbers, and comments
-    jsonOutput.addEventListener('scroll', function() {
-        lineNumbers.scrollTop = this.scrollTop;
-        commentsTextarea.scrollTop = this.scrollTop;
-        commentsLineNumbers.scrollTop = this.scrollTop;
-        jsonHighlightOverlay.scrollTop = this.scrollTop;
-    });
-
-    commentsTextarea.addEventListener('scroll', function() {
-        lineNumbers.scrollTop = this.scrollTop;
-        jsonOutput.scrollTop = this.scrollTop;
-        commentsLineNumbers.scrollTop = this.scrollTop;
-        jsonHighlightOverlay.scrollTop = this.scrollTop;
-    });
-
-    // Load comments on page load
-    loadComments();
-
-    // Initialize alignment on page load
-    setTimeout(alignLineNumbers, 100);
-
-    // Handle Enter key in input (Ctrl+Enter to format)
-    jsonInput.addEventListener('keydown', function(event) {
-        if (event.ctrlKey && event.key === 'Enter') {
-            event.preventDefault();
-            formatJSON();
-        }
-    });
-
-    // Handle paste events - auto-format if valid JSON
-    jsonInput.addEventListener('paste', function(event) {
-        // Small delay to allow paste to complete
-        setTimeout(() => {
-            const pastedText = jsonInput.value.trim();
-            if (pastedText && isLikelyJSON(pastedText)) {
-                // Auto-format if it looks like JSON
-                setTimeout(formatJSON, 100);
-            }
-        }, 10);
-    });
-
-    /**
-     * Simple heuristic to check if text looks like JSON
-     * @param {string} text - Text to check
-     * @returns {boolean} - True if text looks like JSON
-     */
-    function isLikelyJSON(text) {
+    isLikelyJSON: function(text) {
         const trimmed = text.trim();
-        return (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-               (trimmed.startsWith('[') && trimmed.endsWith(']'));
+        return (trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'));
     }
+};
 
-    // Handle window beforeunload to warn about unsaved changes
-    window.addEventListener('beforeunload', function(event) {
-        if (jsonInput.value.trim() && !jsonOutput.value.trim()) {
-            event.preventDefault();
-            event.returnValue = 'You have unformatted JSON. Are you sure you want to leave?';
-            return event.returnValue;
-        }
-    });
-});
+// Initialize the App when the DOM is ready
+document.addEventListener('DOMContentLoaded', () => App.init());
+>>>>>>> REPLACE

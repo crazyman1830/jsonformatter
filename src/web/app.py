@@ -2,13 +2,14 @@
 
 import logging
 from typing import Optional, Union
+
 from flask import Flask, render_template
 
 from core.config import AppConfig
-from core.logging import LoggerFactory
 from core.exceptions import ConfigurationError
-from services.json_processor import JSONProcessorService
+from core.logging import LoggerFactory
 from services.comment_service import CommentService, SessionCommentStorage
+from services.json_processor import JSONProcessorService
 from web.middleware.logging import RequestLoggingMiddleware
 
 

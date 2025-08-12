@@ -6,10 +6,10 @@ support for different storage backends through abstract interfaces.
 """
 
 import logging
-from typing import List, Optional, Dict, Any
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
 
-from core.exceptions import ValidationError, ProcessingError
+from core.exceptions import ProcessingError, ValidationError
 
 
 class CommentStorage(ABC):
@@ -207,24 +207,6 @@ class SessionCommentStorage(CommentStorage):
             )
             return False
 
-    def get_session_count(self) -> int:
-        """
-        Get the number of active sessions with comments.
-
-        Returns:
-            int: Number of sessions with stored comments
-        """
-        return len(self._storage)
-
-    def get_all_session_ids(self) -> List[str]:
-        """
-        Get all session IDs that have stored comments.
-
-        Returns:
-            List[str]: List of session IDs
-        """
-        return list(self._storage.keys())
-
 
 class CommentService:
     """
@@ -248,6 +230,21 @@ class CommentService:
         self.logger = logger or logging.getLogger(__name__)
         self.logger.debug("CommentService initialized")
 
+    def _validate_session_id(self, session_id: str) -> None:
+        """
+        Validate the session ID to ensure it's a non-empty string.
+
+        Args:
+            session_id: The session ID to validate.
+
+        Raises:
+            ValidationError: If the session ID is invalid.
+        """
+        if not session_id or not session_id.strip():
+            error_msg = "Session ID cannot be empty"
+            self.logger.error(error_msg)
+            raise ValidationError(error_msg)
+
     def save_comments(self, session_id: str, comments_text: Any) -> bool:
         """
         Save comments from a text string, splitting by lines.
@@ -264,12 +261,7 @@ class CommentService:
             ProcessingError: If save operation fails
         """
         self.logger.debug(f"Saving comments for session {session_id}")
-
-        # Input validation
-        if not session_id or not session_id.strip():
-            error_msg = "Session ID cannot be empty"
-            self.logger.error(error_msg)
-            raise ValidationError(error_msg)
+        self._validate_session_id(session_id)
 
         if comments_text is None:
             error_msg = "Comments text cannot be None"
@@ -320,12 +312,7 @@ class CommentService:
             ProcessingError: If load operation fails
         """
         self.logger.debug(f"Loading comments for session {session_id}")
-
-        # Input validation
-        if not session_id or not session_id.strip():
-            error_msg = "Session ID cannot be empty"
-            self.logger.error(error_msg)
-            raise ValidationError(error_msg)
+        self._validate_session_id(session_id)
 
         try:
             comments_list = self.storage.load_comments(session_id)
@@ -356,12 +343,7 @@ class CommentService:
             ProcessingError: If clear operation fails
         """
         self.logger.debug(f"Clearing comments for session {session_id}")
-
-        # Input validation
-        if not session_id or not session_id.strip():
-            error_msg = "Session ID cannot be empty"
-            self.logger.error(error_msg)
-            raise ValidationError(error_msg)
+        self._validate_session_id(session_id)
 
         try:
             success = self.storage.clear_comments(session_id)
@@ -383,130 +365,5 @@ class CommentService:
             raise
         except Exception as e:
             error_msg = f"Unexpected error clearing comments: {str(e)}"
-            self.logger.error(error_msg, exc_info=True)
-            raise ProcessingError(error_msg) from e
-
-    def has_comments(self, session_id: str) -> bool:
-        """
-        Check if a session has any stored comments.
-
-        Args:
-            session_id: Unique identifier for the session
-
-        Returns:
-            bool: True if session has comments, False otherwise
-
-        Raises:
-            ValidationError: If input validation fails
-        """
-        # Input validation
-        if not session_id or not session_id.strip():
-            error_msg = "Session ID cannot be empty"
-            self.logger.error(error_msg)
-            raise ValidationError(error_msg)
-
-        try:
-            return self.storage.session_exists(session_id)
-        except Exception as e:
-            self.logger.error(f"Error checking comments existence: {str(e)}")
-            return False
-
-    def get_comment_count(self, session_id: str) -> int:
-        """
-        Get the number of comments for a session.
-
-        Args:
-            session_id: Unique identifier for the session
-
-        Returns:
-            int: Number of comments, 0 if none found
-
-        Raises:
-            ValidationError: If input validation fails
-        """
-        # Input validation
-        if not session_id or not session_id.strip():
-            error_msg = "Session ID cannot be empty"
-            self.logger.error(error_msg)
-            raise ValidationError(error_msg)
-
-        try:
-            comments_list = self.storage.load_comments(session_id)
-            return len(comments_list)
-        except Exception as e:
-            self.logger.error(f"Error getting comment count: {str(e)}")
-            return 0
-
-    def synchronize_with_json_lines(
-        self, session_id: str, json_line_count: int
-    ) -> bool:
-        """
-        Synchronize comments with JSON line count, padding or truncating as needed.
-
-        Args:
-            session_id: Unique identifier for the session
-            json_line_count: Number of lines in the formatted JSON
-
-        Returns:
-            bool: True if synchronization was successful, False otherwise
-
-        Raises:
-            ValidationError: If input validation fails
-            ProcessingError: If synchronization fails
-        """
-        self.logger.debug(
-            f"Synchronizing comments for session {session_id} with {json_line_count} JSON lines"
-        )
-
-        # Input validation
-        if not session_id or not session_id.strip():
-            error_msg = "Session ID cannot be empty"
-            self.logger.error(error_msg)
-            raise ValidationError(error_msg)
-
-        if json_line_count < 0:
-            error_msg = "JSON line count cannot be negative"
-            self.logger.error(error_msg)
-            raise ValidationError(error_msg)
-
-        try:
-            current_comments = self.storage.load_comments(session_id)
-            current_count = len(current_comments)
-
-            if current_count == json_line_count:
-                # Already synchronized
-                self.logger.debug(
-                    f"Comments already synchronized for session {session_id}"
-                )
-                return True
-            elif current_count < json_line_count:
-                # Pad with empty comments
-                padded_comments = current_comments + [""] * (
-                    json_line_count - current_count
-                )
-                success = self.storage.save_comments(session_id, padded_comments)
-                self.logger.info(
-                    f"Padded comments from {current_count} to {json_line_count} "
-                    f"for session {session_id}"
-                )
-            else:
-                # Truncate comments
-                truncated_comments = current_comments[:json_line_count]
-                success = self.storage.save_comments(session_id, truncated_comments)
-                self.logger.info(
-                    f"Truncated comments from {current_count} to {json_line_count} "
-                    f"for session {session_id}"
-                )
-
-            if not success:
-                raise ProcessingError("Failed to save synchronized comments")
-
-            return success
-
-        except ValidationError:
-            # Re-raise validation errors
-            raise
-        except Exception as e:
-            error_msg = f"Unexpected error synchronizing comments: {str(e)}"
             self.logger.error(error_msg, exc_info=True)
             raise ProcessingError(error_msg) from e
