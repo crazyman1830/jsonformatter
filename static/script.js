@@ -429,4 +429,3 @@ const App = {
 
 // Initialize the App when the DOM is ready
 document.addEventListener('DOMContentLoaded', () => App.init());
->>>>>>> REPLACE
