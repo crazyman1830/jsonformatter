@@ -12,6 +12,9 @@ import os
 from typing import NoReturn
 
 # Add src directory to Python path for imports
+import sys
+import os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from core.config import AppConfig

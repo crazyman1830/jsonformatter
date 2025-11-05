@@ -9,8 +9,6 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-import orjson
-
 
 @dataclass
 class JSONValidationResult:
@@ -76,13 +74,13 @@ class JSONData:
             return self._validation_result
 
         try:
-            # Use orjson for faster parsing and store the result to avoid re-parsing
-            self._parsed_data = orjson.loads(self.raw_data)
+            # Use json for parsing and store the result to avoid re-parsing
+            self._parsed_data = json.loads(self.raw_data)
             self._validation_result = JSONValidationResult(is_valid=True)
             return self._validation_result
 
-        except orjson.JSONDecodeError as e:
-            # Create a more informative error message from orjson's exception
+        except json.JSONDecodeError as e:
+            # Create a more informative error message from json's exception
             error_msg = f"Invalid JSON at line {e.lineno} column {e.colno}: {e.msg}"
             self._validation_result = JSONValidationResult(
                 is_valid=False, error_message=error_msg, line_number=e.lineno
@@ -116,8 +114,8 @@ class JSONData:
 
         # This is a fallback that should not normally be reached
         try:
-            return orjson.loads(self.raw_data)
-        except orjson.JSONDecodeError as e:
+            return json.loads(self.raw_data)
+        except json.JSONDecodeError as e:
             raise ValueError(f"JSON parsing error: {str(e)}")
 
     def format(self, indent: int = 2, sort_keys: bool = True) -> JSONFormatResult:
@@ -134,20 +132,9 @@ class JSONData:
         try:
             parsed_data = self.parse()
 
-            # For the most common case (indent=2), use high-performance orjson.
-            # For other indents, fall back to the standard json library to support them.
-            if indent == 2:
-                option = orjson.OPT_INDENT_2
-                if sort_keys:
-                    option |= orjson.OPT_SORT_KEYS
-
-                # orjson.dumps returns bytes, so we decode it. ensure_ascii=False is default.
-                formatted_json_bytes = orjson.dumps(parsed_data, option=option)
-                formatted_json = formatted_json_bytes.decode("utf-8")
-            else:
-                formatted_json = json.dumps(
-                    parsed_data, indent=indent, sort_keys=sort_keys, ensure_ascii=False
-                )
+            formatted_json = json.dumps(
+                parsed_data, indent=indent, sort_keys=sort_keys, ensure_ascii=False
+            )
 
             # Count lines in formatted JSON
             line_count = len(formatted_json.splitlines())

@@ -252,35 +252,36 @@ Pull Request 생성 시 다음 사항을 확인합니다:
 
 ## 테스팅
 
-### 테스트 종류
+### 단위 및 통합 테스트
 
-#### 1. 통합 테스트 (`test_integration.py`)
-- 설정 로딩 테스트
-- 로깅 시스템 테스트
-- Flask 애플리케이션 생성 테스트
-- API 엔드포인트 테스트
+프로젝트는 `pytest`를 사용하여 단위 및 통합 테스트를 실행합니다. 테스트는 `tests/` 디렉터리에 있습니다.
 
-#### 2. 정적 분석 테스트 (`test_static_analysis.py`)
-- Black 포맷팅 검사
-- Flake8 린팅 검사
-- MyPy 타입 검사
-- Bandit 보안 검사
-- Pre-commit 훅 테스트
-
-#### 3. 시작 테스트 (`test_startup.py`)
-- 애플리케이션 시작 테스트
-- 기본 기능 테스트
-
-### 테스트 실행
+테스트를 실행하려면 다음 명령어를 사용하세요.
 
 ```bash
 # 모든 테스트 실행
-python test_integration.py && python test_static_analysis.py && python test_startup.py
+pytest
+```
 
-# 개별 테스트 실행
-python test_integration.py      # 통합 테스트
-python test_static_analysis.py  # 정적 분석
-python test_startup.py          # 시작 테스트
+`pyproject.toml` 파일은 `pytest`가 `src` 디렉터리의 모듈을 찾도록 구성되어 있습니다.
+
+### 정적 분석
+
+정적 분석(linting, type checking, security scanning)은 `pre-commit` 훅을 사용하여 커밋 시 자동으로 실행됩니다. `pyproject.toml`과 `.pre-commit-config.yaml`에 구성이 정의되어 있습니다.
+
+수동으로 모든 정적 분석 검사를 실행하려면 다음 명령어를 사용하세요.
+
+```bash
+pre-commit run --all-files
+```
+
+### 새로운 테스트 작성
+
+새로운 테스트를 작성할 때는 다음 규칙을 따르세요.
+
+- 테스트 파일 이름은 `test_*.py` 형식이어야 합니다.
+- 테스트 함수 이름은 `test_*`로 시작해야 합니다.
+- 단위 및 통합 테스트는 `tests/` 디렉터리 안에 있어야 합니다.
 ```
 
 ## 배포
