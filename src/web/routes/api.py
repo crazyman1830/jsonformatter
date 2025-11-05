@@ -412,6 +412,8 @@ class APIRoutes:
             if request.is_json:
                 data = request.get_json() or {}
                 sort_keys = data.get("sort_keys", True)
+                if isinstance(sort_keys, str):
+                    sort_keys = sort_keys.lower() in ("true", "1", "yes", "on")
             else:
                 sort_keys = request.form.get("sort_keys", "true").lower()
                 sort_keys = sort_keys in ("true", "1", "yes", "on")
