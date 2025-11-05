@@ -145,7 +145,10 @@ ensure_newline_before_comments = true
 src_paths = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["."]
+testpaths = ["tests"]
+pythonpath = [
+  "src"
+]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -154,3 +157,6 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
