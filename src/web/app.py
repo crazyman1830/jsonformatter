@@ -34,9 +34,7 @@ def create_app(config: Optional[AppConfig] = None) -> Flask:
     config.validate()
 
     # Create Flask application
-    app = Flask(
-        __name__, template_folder="../../templates", static_folder="../../static"
-    )
+    app = Flask(__name__, template_folder="templates", static_folder="static")
 
     # Configure Flask settings
     app.config.update(
