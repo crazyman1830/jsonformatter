@@ -1,0 +1,25 @@
+"""Configuration management for the JSON Formatter application."""
+
+import os
+
+from dataclasses import dataclass
+from enum import Enum
+
+
+def _clean_env_value(value: str) -> str:
+    """Strip inline comments and whitespace from environment variable values."""
+    if not value:
+        return value
+    # Remove inline comments (anything after #)
+    if '#' in value:
+        value = value.split('#')[0]
+    # Strip whitespace
+    return value.strip()
+
+
+class Environment(Enum):
+    """Application environment types."""
+
+    DEVELOPMENT = "development"
+    TESTING = "testing"
+    PRODUCTION = "production"
