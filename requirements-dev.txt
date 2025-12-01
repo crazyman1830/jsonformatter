@@ -21,7 +21,7 @@ types-Flask>=1.1.0
 bandit>=1.7.0,<2.0.0
 
 # Pre-commit hooks
-pre-commit>=3.0.0,<4.0.0
+
 
 # Development utilities
 isort>=5.12.0,<6.0.0
