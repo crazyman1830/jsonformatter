@@ -103,8 +103,23 @@ export const Home: React.FC = () => {
         }
     };
 
-    const handleCopy = () => {
+    const handleCopyJson = () => {
         navigator.clipboard.writeText(input);
+    };
+
+    const handleCopyAll = () => {
+        const jsonLines = input.split('\n');
+        const commentLines = comments.split('\n');
+
+        const combined = jsonLines.map((line, index) => {
+            const comment = commentLines[index];
+            if (comment && comment.trim()) {
+                return `${line} // ${comment}`;
+            }
+            return line;
+        }).join('\n');
+
+        navigator.clipboard.writeText(combined);
     };
 
     const handleClear = () => {
@@ -141,7 +156,8 @@ export const Home: React.FC = () => {
             <Toolbar
                 onFormat={handleFormat}
                 onValidate={handleValidate}
-                onCopy={handleCopy}
+                onCopyJson={handleCopyJson}
+                onCopyAll={handleCopyAll}
                 onClear={handleClear}
                 isValid={isValid}
             />

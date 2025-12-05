@@ -4,7 +4,8 @@ import { FileJson, CheckCircle, Copy, Trash2 } from 'lucide-react';
 interface ToolbarProps {
     onFormat: () => void;
     onValidate: () => void;
-    onCopy: () => void;
+    onCopyJson: () => void;
+    onCopyAll: () => void;
     onClear: () => void;
     isValid?: boolean | null;
 }
@@ -12,7 +13,8 @@ interface ToolbarProps {
 export const Toolbar: React.FC<ToolbarProps> = ({
     onFormat,
     onValidate,
-    onCopy,
+    onCopyJson,
+    onCopyAll,
     onClear,
     isValid
 }) => {
@@ -25,8 +27,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 </h1>
                 {isValid !== null && (
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${isValid
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
                         }`}>
                         {isValid ? 'Valid JSON' : 'Invalid JSON'}
                     </span>
@@ -49,11 +51,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     Validate
                 </button>
                 <button
-                    onClick={onCopy}
+                    onClick={onCopyJson}
                     className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                    title="Copy JSON only"
                 >
                     <Copy className="mr-2 h-4 w-4" />
-                    Copy
+                    Copy JSON
+                </button>
+                <button
+                    onClick={onCopyAll}
+                    className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                    title="Copy JSON with Comments"
+                >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy All
                 </button>
                 <button
                     onClick={onClear}
