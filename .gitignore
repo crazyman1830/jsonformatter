@@ -145,7 +145,7 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
-config.py
+
 *.sqlite
 *.db
 uploads/
@@ -155,3 +155,11 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+

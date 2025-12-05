@@ -91,6 +91,45 @@ class APIRoutes:
     def format_json(self) -> Tuple[Dict[str, Any], int]:
         """
         Process JSON formatting requests with comprehensive error handling.
+        ---
+        tags:
+          - JSON Operations
+        parameters:
+          - in: body
+            name: body
+            schema:
+              type: object
+              required:
+                - json_data
+              properties:
+                json_data:
+                  type: string
+                  description: Raw JSON string to format
+                indent:
+                  type: integer
+                  default: 2
+                  description: Indentation level
+                sort_keys:
+                  type: boolean
+                  default: true
+                  description: Whether to sort keys
+        responses:
+          200:
+            description: JSON formatted successfully
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                formatted_json:
+                  type: string
+                line_count:
+                  type: integer
+          400:
+            description: Validation error
+          500:
+            description: Server error
+
 
         Returns:
             Tuple[Dict[str, Any], int]: JSON response and HTTP status code
@@ -147,6 +186,34 @@ class APIRoutes:
     def validate_json(self) -> Tuple[Dict[str, Any], int]:
         """
         Validate JSON data without formatting.
+        ---
+        tags:
+          - JSON Operations
+        parameters:
+          - in: body
+            name: body
+            schema:
+              type: object
+              required:
+                - json_data
+              properties:
+                json_data:
+                  type: string
+                  description: Raw JSON string to validate
+        responses:
+          200:
+            description: JSON is valid
+            schema:
+              type: object
+              properties:
+                is_valid:
+                  type: boolean
+                error_message:
+                  type: string
+                  nullable: true
+          400:
+            description: Validation error
+
 
         Returns:
             Tuple[Dict[str, Any], int]: JSON response and HTTP status code

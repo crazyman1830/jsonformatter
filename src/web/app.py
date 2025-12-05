@@ -4,6 +4,10 @@ import logging
 from typing import Optional, Union
 
 from flask import Flask, render_template
+from flasgger import Swagger
+from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from core.config import AppConfig
 from core.exceptions import ConfigurationError
@@ -33,8 +37,28 @@ def create_app(config: Optional[AppConfig] = None) -> Flask:
     # Validate configuration
     config.validate()
 
+    # Determine paths for frontend
+    import os
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    frontend_dist = os.path.join(base_dir, "frontend", "dist")
+    
+    if os.path.exists(frontend_dist):
+        template_folder = frontend_dist
+        static_folder = os.path.join(frontend_dist, "assets")
+        static_url_path = "/assets"
+    else:
+        # Fallback for development or if build missing
+        template_folder = "templates"
+        static_folder = "static"
+        static_url_path = "/static"
+
     # Create Flask application
-    app = Flask(__name__, template_folder="templates", static_folder="static")
+    app = Flask(
+        __name__, 
+        template_folder=template_folder, 
+        static_folder=static_folder,
+        static_url_path=static_url_path
+    )
 
     # Configure Flask settings
     app.config.update(
@@ -71,6 +95,20 @@ def create_app(config: Optional[AppConfig] = None) -> Flask:
         app=app, logger=LoggerFactory.create_logger("request_middleware")
     )
 
+    # Initialize Swagger
+    Swagger(app)
+
+    # Configure CORS
+    CORS(app)
+
+    # Configure Rate Limiting
+    Limiter(
+        get_remote_address,
+        app=app,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri="memory://",
+    )
+
     # Register blueprints
     _register_blueprints(app, json_service, comment_service)
 
@@ -82,6 +120,14 @@ def create_app(config: Optional[AppConfig] = None) -> Flask:
     def index() -> str:
         """Serve the main HTML interface."""
         logger.debug("Serving main HTML interface")
+        # In production with React, this serves index.html from dist
+        return render_template("index.html")
+
+    # Catch-all route for React Router (if needed in future)
+    @app.route("/<path:path>")
+    def catch_all(path: str) -> str:
+        if path.startswith("api") or path.startswith("assets"):
+            return "Not Found", 404
         return render_template("index.html")
 
     logger.info("Flask application created successfully")
