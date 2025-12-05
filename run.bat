@@ -9,7 +9,7 @@ echo.
 REM --- Check for Node.js ---
 where npm >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ERROR: Node.js (npm) is not found in PATH.
+    echo ERROR: Node.js ^(npm^) is not found in PATH.
     echo Please install Node.js from https://nodejs.org/
     pause
     exit /b 1
