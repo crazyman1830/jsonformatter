@@ -270,10 +270,12 @@ class CommentService:
 
         try:
             # Split comments by lines and clean up
-            if comments_text.strip():
-                comments_list = [line.strip() for line in comments_text.splitlines()]
-                # Remove empty lines
-                comments_list = [comment for comment in comments_list if comment]
+            # Split comments by lines
+            if comments_text:
+                comments_list = comments_text.splitlines()
+                # Ensure we don't lose the last empty line if text ends with newline
+                if comments_text.endswith('\n'):
+                    comments_list.append('')
             else:
                 comments_list = []
 
